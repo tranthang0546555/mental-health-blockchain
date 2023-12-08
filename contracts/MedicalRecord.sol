@@ -43,7 +43,7 @@ contract MedicalRecord is Initializable {
     }
 
     event CreateRecord(address sender, uint recordId);
-    event EditRecord(uint recordId);
+    event UpdateRecord(uint recordId);
     event DeleteRecord(uint recordId);
 
     function createRecord(
@@ -66,13 +66,13 @@ contract MedicalRecord is Initializable {
         emit CreateRecord(msg.sender, recordId);
     }
 
-    function editRecord(
+    function updateRecord(
         uint id,
         string memory data
     ) external onlyOwner recordExists(id) {
         medicalRecords[id].data = data;
         medicalRecords[id].updatedAt = block.timestamp;
-        emit EditRecord(id);
+        emit UpdateRecord(id);
     }
 
     function deleteRecord(uint id) external onlyOwner recordExists(id) {
@@ -120,5 +120,13 @@ contract MedicalRecord is Initializable {
 
     function getRecordById(uint id) external view returns (Record memory) {
         return medicalRecords[id];
+    }
+
+    function getRecords() external view returns (Record[] memory) {
+        Record[] memory result = new Record[](medicalRecords.length);
+        for (uint i = 0; i < medicalRecords.length; i++) {
+            result[i] = medicalRecords[i];
+        }
+        return result;
     }
 }
