@@ -17,7 +17,7 @@ contract MedicalRecord is Initializable {
 
     Record[] private medicalRecords;
 
-    function initialize() public onlyInitializing {
+    function initialize() public initializer {
         owner = msg.sender;
     }
 
