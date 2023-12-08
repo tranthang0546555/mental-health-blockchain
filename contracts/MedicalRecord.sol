@@ -1,14 +1,12 @@
 pragma solidity ^0.8.9;
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract MedicalRecord {
-    event CreateMedicalRecord(address sender, uint recordId);
-    event EditMedicalRecord(uint recordId);
-    event DeleteMedicalRecord(uint recordId);
-    event RestoreMedicalRecord(uint recordId);
+contract MedicalRecord is Initializable {
+    address public owner;
+    bool private initialized;
 
     struct Record {
         uint id;
-        address walletId;
         string data;
         bool isDeleted;
         string userId;
@@ -18,18 +16,45 @@ contract MedicalRecord {
     }
 
     Record[] private medicalRecords;
-    mapping(uint => address) recordToOwner;
 
-    function createMedicalRecord(
+    function initialize() public onlyInitializing {
+        owner = msg.sender;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only onwer can perform this action");
+        _;
+    }
+
+    modifier recordExists(uint id) {
+        require(
+            bytes(medicalRecords[id].userId).length > 0,
+            "Medical record does not exist"
+        );
+        require(
+            medicalRecords[id].isDeleted == false,
+            "Medical record has been deleted"
+        );
+        _;
+    }
+
+    function changeOwner(address _newOwner) public onlyOwner {
+        owner = _newOwner;
+    }
+
+    event CreateRecord(address sender, uint recordId);
+    event EditRecord(uint recordId);
+    event DeleteRecord(uint recordId);
+
+    function createRecord(
         string memory data,
         string memory userId,
         string memory doctorId
-    ) external {
+    ) external onlyOwner {
         uint recordId = medicalRecords.length;
         medicalRecords.push(
             Record(
                 recordId,
-                msg.sender,
                 data,
                 false,
                 userId,
@@ -38,30 +63,24 @@ contract MedicalRecord {
                 block.timestamp
             )
         );
-        recordToOwner[recordId] = msg.sender;
-        emit CreateMedicalRecord(msg.sender, recordId);
+        emit CreateRecord(msg.sender, recordId);
     }
 
-    function getRecordsbyUserId(
-        string memory userId
-    ) external view returns (Record[] memory) {
-        Record[] memory temp = new Record[](medicalRecords.length);
-        uint counter = 0;
-        for (uint i = 0; i < medicalRecords.length; i++) {
-            if (
-                keccak256(abi.encode(medicalRecords[i].userId)) ==
-                keccak256(abi.encode(userId))
-            ) {
-                temp[counter] = medicalRecords[i];
-                counter++;
-            }
-        }
-        Record[] memory result = new Record[](counter);
-        for (uint i = 0; i < counter; i++) result[i] = temp[i];
-        return result;
+    function editRecord(
+        uint id,
+        string memory data
+    ) external onlyOwner recordExists(id) {
+        medicalRecords[id].data = data;
+        medicalRecords[id].updatedAt = block.timestamp;
+        emit EditRecord(id);
     }
 
-    function getRecordsbyDoctorId(
+    function deleteRecord(uint id) external onlyOwner recordExists(id) {
+        medicalRecords[id].isDeleted = true;
+        emit DeleteRecord(id);
+    }
+
+    function getRecordsCreatedByDoctorId(
         string memory doctorId
     ) external view returns (Record[] memory) {
         Record[] memory temp = new Record[](medicalRecords.length);
@@ -80,42 +99,26 @@ contract MedicalRecord {
         return result;
     }
 
-    function editMedicalRecord(
-        uint id,
-        string memory data
-    ) external returns (bool) {
-        if (recordToOwner[id] == msg.sender) {
-            medicalRecords[id].data = data;
-            medicalRecords[id].updatedAt = block.timestamp;
-            emit EditMedicalRecord(id);
-            return true;
-        }
-        return false;
-    }
-
-    function deleteMedicalRecord(uint id) external returns (bool) {
-        if (recordToOwner[id] == msg.sender) {
-            medicalRecords[id].isDeleted = true;
-            emit DeleteMedicalRecord(id);
-            return true;
-        }
-        return false;
-    }
-
-    function restoreMedicalRecord(uint id) external returns (bool) {
-        if (recordToOwner[id] == msg.sender) {
-            medicalRecords[id].isDeleted = false;
-            emit RestoreMedicalRecord(id);
-            return true;
-        }
-        return false;
-    }
-
-    function getAll() external view returns (Record[] memory) {
-        Record[] memory result = new Record[](medicalRecords.length);
+    function getRecordsByUserId(
+        string memory userId
+    ) external view returns (Record[] memory) {
+        Record[] memory temp = new Record[](medicalRecords.length);
+        uint counter = 0;
         for (uint i = 0; i < medicalRecords.length; i++) {
-            result[i] = medicalRecords[i];
+            if (
+                keccak256(abi.encode(medicalRecords[i].userId)) ==
+                keccak256(abi.encode(userId))
+            ) {
+                temp[counter] = medicalRecords[i];
+                counter++;
+            }
         }
+        Record[] memory result = new Record[](counter);
+        for (uint i = 0; i < counter; i++) result[i] = temp[i];
         return result;
+    }
+
+    function getRecordById(uint id) external view returns (Record memory) {
+        return medicalRecords[id];
     }
 }
