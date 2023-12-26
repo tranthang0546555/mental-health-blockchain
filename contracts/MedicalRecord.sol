@@ -10,12 +10,32 @@ contract MedicalRecord is Initializable {
         string data;
         bool isDeleted;
         string userId;
+        string numberId;
         string doctorId;
         uint createdAt;
         uint updatedAt;
     }
 
+    struct History {
+        uint id;
+        uint recordId;
+        string data;
+        bool isDeleted;
+        string userId;
+        string numberId;
+        string doctorId;
+        uint createdAt;
+        uint updatedAt;
+        uint pushedAt;
+    }
+
+    struct RecordWithHistory {
+        Record record;
+        History[] histories;
+    }
+
     Record[] private medicalRecords;
+    History[] private histories;
 
     function initialize() public initializer {
         owner = msg.sender;
@@ -49,6 +69,7 @@ contract MedicalRecord is Initializable {
     function createRecord(
         string memory data,
         string memory userId,
+        string memory numberId,
         string memory doctorId
     ) external onlyOwner {
         uint recordId = medicalRecords.length;
@@ -58,6 +79,7 @@ contract MedicalRecord is Initializable {
                 data,
                 false,
                 userId,
+                numberId,
                 doctorId,
                 block.timestamp,
                 block.timestamp
@@ -70,12 +92,40 @@ contract MedicalRecord is Initializable {
         uint id,
         string memory data
     ) external onlyOwner recordExists(id) {
+        histories.push(
+            History(
+                histories.length,
+                medicalRecords[id].id,
+                medicalRecords[id].data,
+                medicalRecords[id].isDeleted,
+                medicalRecords[id].userId,
+                medicalRecords[id].numberId,
+                medicalRecords[id].doctorId,
+                medicalRecords[id].createdAt,
+                medicalRecords[id].updatedAt,
+                block.timestamp
+            )
+        );
         medicalRecords[id].data = data;
         medicalRecords[id].updatedAt = block.timestamp;
         emit UpdateRecord(id);
     }
 
     function deleteRecord(uint id) external onlyOwner recordExists(id) {
+        histories.push(
+            History(
+                histories.length,
+                medicalRecords[id].id,
+                medicalRecords[id].data,
+                medicalRecords[id].isDeleted,
+                medicalRecords[id].userId,
+                medicalRecords[id].numberId,
+                medicalRecords[id].doctorId,
+                medicalRecords[id].createdAt,
+                medicalRecords[id].updatedAt,
+                block.timestamp
+            )
+        );
         medicalRecords[id].isDeleted = true;
         emit DeleteRecord(id);
     }
@@ -118,8 +168,41 @@ contract MedicalRecord is Initializable {
         return result;
     }
 
-    function getRecordById(uint id) external view returns (Record memory) {
-        return medicalRecords[id];
+    function getRecordsByNumberId(
+        string memory numberId
+    ) external view returns (Record[] memory) {
+        Record[] memory temp = new Record[](medicalRecords.length);
+        uint counter = 0;
+        for (uint i = 0; i < medicalRecords.length; i++) {
+            if (
+                keccak256(abi.encode(medicalRecords[i].numberId)) ==
+                keccak256(abi.encode(numberId))
+            ) {
+                temp[counter] = medicalRecords[i];
+                counter++;
+            }
+        }
+        Record[] memory result = new Record[](counter);
+        for (uint i = 0; i < counter; i++) result[i] = temp[i];
+        return result;
+    }
+
+    function getRecordById(uint id) external view returns (RecordWithHistory memory) {
+        History[] memory temp = new History[](histories.length);
+        uint counter = 0;
+        for (uint i = 0; i < histories.length; i++) {
+            if (
+                keccak256(abi.encode(histories[i].recordId)) ==
+                keccak256(abi.encode(id))
+            ) {
+                temp[counter] = histories[i];
+                counter++;
+            }
+        }
+        RecordWithHistory memory result;
+        result.record = medicalRecords[id];
+        result.histories = temp;
+        return result;
     }
 
     function getRecords() external view returns (Record[] memory) {
