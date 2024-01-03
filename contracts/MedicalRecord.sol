@@ -199,9 +199,13 @@ contract MedicalRecord is Initializable {
                 counter++;
             }
         }
+
+        History[] memory recordsHistory = new History[](counter);
+        for (uint i = 0; i < counter; i++) recordsHistory[i] = temp[i];
+
         RecordWithHistory memory result;
         result.record = medicalRecords[id];
-        result.histories = temp;
+        result.histories = recordsHistory;
         return result;
     }
 
