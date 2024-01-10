@@ -145,7 +145,7 @@ contract MedicalRecord is Initializable {
             }
         }
         Record[] memory result = new Record[](counter);
-        for (uint i = 0; i < counter; i++) result[i] = temp[i];
+        for (uint i = 0; i < counter; i++) result[i] = temp[counter - i - 1];
         return result;
     }
 
@@ -164,7 +164,7 @@ contract MedicalRecord is Initializable {
             }
         }
         Record[] memory result = new Record[](counter);
-        for (uint i = 0; i < counter; i++) result[i] = temp[i];
+        for (uint i = 0; i < counter; i++) result[i] = temp[counter - i - 1];
         return result;
     }
 
@@ -183,7 +183,7 @@ contract MedicalRecord is Initializable {
             }
         }
         Record[] memory result = new Record[](counter);
-        for (uint i = 0; i < counter; i++) result[i] = temp[i];
+        for (uint i = 0; i < counter; i++) result[i] = temp[counter - i - 1];
         return result;
     }
 
@@ -211,9 +211,7 @@ contract MedicalRecord is Initializable {
 
     function getRecords() external view returns (Record[] memory) {
         Record[] memory result = new Record[](medicalRecords.length);
-        for (uint i = 0; i < medicalRecords.length; i++) {
-            result[i] = medicalRecords[i];
-        }
+        for (uint i = 0; i < medicalRecords.length; i++) result[i] = medicalRecords[medicalRecords.length - i - 1];
         return result;
     }
 }
